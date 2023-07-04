@@ -1,7 +1,7 @@
 const productModel= require("../models/productModel")
-const validator= require("validator")
+const validator = require("validator")
 const {isValid,isValidRequestBody} = require('../validation/validator');
-const {uploadFile}= require("../awss3/awsS3")
+const {uploadFile} = require("../aws/awss3")
 
 const postProduct= async (req, res) => {
     try {

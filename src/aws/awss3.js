@@ -9,13 +9,12 @@ aws.config.update({
 
 let uploadFile = async (file) => {
   return new Promise(function(resolve, reject) {
-    // this function will upload file to AWS and return the link
-    let s3 = new aws.S3({apiVersion: '2006-03-01'}); // we will be using the S3 service of AWS
+    let s3 = new aws.S3({apiVersion: '2010-12-01'}); 
 
     var uploadParams = {
       ACL: "public-read",
-      Bucket: "classroom-training-bucket", // Specify your bucket name here
-      Key: "abc/" + file.originalname,
+      Bucket: "classroom-training-bucket",
+      Key: "nehal/" + file.originalname,
       Body: file.buffer
     };
 
@@ -23,7 +22,6 @@ let uploadFile = async (file) => {
       if (err) {
         return reject({"error": err});
       }
-      // console.log(data);
       // console.log("File uploaded successfully");
       return resolve(data.Location);
     });
