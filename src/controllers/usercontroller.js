@@ -12,13 +12,17 @@ const ObjectId = mongoose.Types.ObjectId
 const createUser = async function(req,res){
     // let files = req.files
     // console.log(files)
-    // console.log(req.body)
-    // console.log(req.headers.authorization)
+    // let data = req.body
+    // let address = JSON.parse(data.address)
+    // console.log(data)
+    // console.log(address.shipping.street)
+    // console.log(req.headers.authorization) 
     try{
         if(!isValidRequestBody(req.body)){
             return res.status(400).send({status :false, message: "Must add data"})
         }
         let {fname, lname, email, phone, password, address}= req.body
+        address = JSON.parse(address)
         if(!isValid(fname) || !isValid(lname) || !isValid(email) || !isValid(phone) || !isValid(password)){
             return res.status(400).send({
                 status: false,
@@ -37,6 +41,7 @@ const createUser = async function(req,res){
                 message: "enter valid shipping pincode"
             }) 
         }
+        req.body.address = address
 
         email= email.trim()
         if(!validator.isEmail(email)){
@@ -60,9 +65,9 @@ const createUser = async function(req,res){
             })
         }
 
-        let {profileImage} = req.files
+        let profileImage = req.files
         if(profileImage && profileImage.length > 0){
-            let awss3link= uploadFile(profileImage[0])
+            let awss3link= await uploadFile(profileImage[0])
             req.body.profileImage= awss3link
         }else{
             return res.status(400).send({
@@ -89,8 +94,8 @@ const createUser = async function(req,res){
 
         const salt = await bcrypt.genSalt(5);
         const hashedPassword = await bcrypt.hash(password, salt);
-        password = hashedPassword;
-
+        req.body.password = hashedPassword;
+        // console.log(req.body)
         const user = await userModel.create(req.body)
         
         res.status(201).send({
@@ -101,7 +106,10 @@ const createUser = async function(req,res){
 
 
     }catch(error){
-        res.status(500).send({status : false, message : error.message})
+        res.status(500).send({
+            status : false, 
+            message : error.message
+        })
     }
 }
 
@@ -133,7 +141,7 @@ const userLogin= async (req, res) => {
             })
         }
         
-        let match= bcrypt.compare(password, user.password)
+        let match= bcrypt.compareSync(password, user.password)
         if(!match){
             return res.status(401).send({
                 status : false, 
@@ -141,7 +149,7 @@ const userLogin= async (req, res) => {
             })
         }
 
-        const token = jwt.sign({userId : user._id}, process.env.JWT_SECRET_KEY)
+        const token = jwt.sign({userId : user._id}, process.env.JWT_SECRET_KEY,{expiresIn : "25d"},{iat : Date.now()})
         res.status(200).send({
           status : true,
           message: "user login successful", 
@@ -152,7 +160,7 @@ const userLogin= async (req, res) => {
         })
     } catch (error) {
         res.status(500).send({
-            status: true,
+            status: false,
             message: error.message
         })
     }
@@ -161,7 +169,7 @@ const userLogin= async (req, res) => {
 
 const getUser = async (req, res) => {
     try {
-        let {userId}= req.params
+        let {userId} = req.params
 
         if(!isValid(userId)){ 
             return res.status(404).send({
@@ -174,6 +182,13 @@ const getUser = async (req, res) => {
             return res.status(400).send({
                 status: false,
                 message: 'enter valid userId'
+            })
+        }
+        //authorization
+        if(req.userId != userId) {
+            return res.status(403).send({
+                status:false,
+                message: "Unauthorized"
             })
         }
 
@@ -192,7 +207,7 @@ const getUser = async (req, res) => {
         })
     } catch (error) {
         res.status(500).send({
-            status: true,
+            status: false,
             message: error.message
         })
     }
@@ -215,20 +230,27 @@ const updateUser= async (req, res) => {
                 message: 'enter valid userId'
             })
         }
+        //authorization
+        if(req.userId != userId) {
+            return res.status(403).send({
+                status:false, 
+                message: "Unauthorized"
+            })
+        }
 
-        let userIdExist= await userModel.findOne({_id: userId}) 
+        let userIdExist = await userModel.findOne({_id: userId}) 
         if(!userIdExist) return res.status(404).send({
             status: false,
             message: 'userId not exit'
         })
-
-        //authorization
-        if(req["x-api-key"].userId != userIdExist._id){
-            return res.status(403).send({
-                status: false,
-                message: "unauthorized, userId not same"
-            })
-        }
+        
+        
+        // if(req["x-api-key"].userId != userIdExist._id){
+        //     return res.status(403).send({
+        //         status: false,
+        //         message: "unauthorized, userId not same"
+        //     })
+        // }
 
         //detail for updation
         let {fname, lname, email, phone, password, address}= req.body
@@ -240,9 +262,9 @@ const updateUser= async (req, res) => {
                     message: "please provide fname"
                 })
             }
-            userIdExist.fname= fname
+            userIdExist.fname = fname
         }
-
+        
         if(lname){
             if(!isValid(lname)){
                 return res.status(400).send({
@@ -323,75 +345,80 @@ const updateUser= async (req, res) => {
             userIdExist.phone= phone
         }
 
-        if(address.shipping.street){
-            if(!isValid(address.shipping.street)){
-                return res.status(400).send({
-                    status: false,
-                    message: "please provide address.shipping.street"
-                })
+        if(address){
+            address = JSON.parse(address)
+            // console.log(address.shipping.street)
+            if(address.shipping.street){
+                if(!isValid(address.shipping.street)){
+                    return res.status(400).send({
+                        status: false,
+                        message: "please provide address.shipping.street"
+                    })
+                }
+                userIdExist.address.shipping.street= address.shipping.street
             }
-            userIdExist.address.shipping.street= address.shipping.street
-        }
-
-        if(address.shipping.city){
-            if(!isValid(address.shipping.city)){
-                return res.status(400).send({
-                    status: false,
-                    message: "please provide address.shipping.city"
-                })
+    
+            if(address.shipping.city){
+                if(!isValid(address.shipping.city)){
+                    return res.status(400).send({
+                        status: false,
+                        message: "please provide address.shipping.city"
+                    })
+                }
+                userIdExist.address.shipping.city= address.shipping.city
             }
-            userIdExist.address.shipping.city= address.shipping.city
-        }
-
-        if(address.billing.street){
-            if(!isValid(address.billing.street)){
-                return res.status(400).send({
-                    status: false,
-                    message: "please provide address.billing.street"
-                })
+            
+            if(address.billing.street){
+                if(!isValid(address.billing.street)){
+                    return res.status(400).send({
+                        status: false,
+                        message: "please provide address.billing.street"
+                    })
+                }
+                userIdExist.address.billing.street= address.billing.street
             }
-            userIdExist.address.billing.street= address.billing.street
-        }
-
-        if(address.billing.city){
-            if(!isValid(address.billing.city)){
-                return res.status(400).send({
-                    status: false,
-                    message: "please provide address.billing.city"
-                })
+    
+            if(address.billing.city){
+                if(!isValid(address.billing.city)){
+                    return res.status(400).send({
+                        status: false,
+                        message: "please provide address.billing.city"
+                    })
+                }
+                userIdExist.address.billing.city= address.billing.city
             }
-            userIdExist.address.billing.city= address.billing.city
-        }
-
-        if(address.shipping.pincode){
-            if(!address.shipping.pincode && typeof address.shipping.pincode !== 'number'){
-                return res.status(400).send({
-                    status: false,
-                    message: "please provide valid shipping pincode"
-                })
+    
+            if(address.shipping.pincode){
+                if(!address.shipping.pincode && typeof address.shipping.pincode !== 'number'){
+                    return res.status(400).send({
+                        status: false,
+                        message: "please provide valid shipping pincode"
+                    })
+                }
+                userIdExist.address.shipping.pincode= address.shipping.pincode
             }
-            userIdExist.address.shipping.pincode= address.shipping.pincode
-        }
-
-        if(address.billing.pincode){
-            if(!address.billing.pincode && typeof address.billing.pincode !== 'number'){
-                return res.status(400).send({
-                    status: false,
-                    message: "please provide valid billing pincode"
-                })
+    
+            if(address.billing.pincode){
+                if(!address.billing.pincode && typeof address.billing.pincode !== 'number'){
+                    return res.status(400).send({
+                        status: false,
+                        message: "please provide valid billing pincode"
+                    })
+                }
+                userIdExist.address.billing.pincode= address.billing.pincode
             }
-            userIdExist.address.billing.pincode= address.billing.pincode
+    
         }
-
         // aws S3
-
-        let {profileImage}= req.files
+    
+        let profileImage = req.files
         if(profileImage){
             if(profileImage && profileImage.length > 0){
-                let awss3link= uploadFile(profileImage[0])
+                let awss3link = await uploadFile(profileImage[0])
                 userIdExist.profileImage= awss3link
             }
         }
+        
 
         const updateUser = await userIdExist.save()
 
@@ -403,7 +430,7 @@ const updateUser= async (req, res) => {
         
     } catch (error) {
         res.status(500).send({
-            status: true,
+            status: false,
             message: error.message
         })
     }
