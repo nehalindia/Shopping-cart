@@ -253,6 +253,9 @@ const updateUser= async (req, res) => {
         // }
 
         //detail for updation
+        if(!isValidRequestBody(req.body)){
+            return res.status(400).send({status :false, message: "Must add data"})
+        }
         let {fname, lname, email, phone, password, address}= req.body
 
         if(fname){

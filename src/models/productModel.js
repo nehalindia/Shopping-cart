@@ -9,7 +9,7 @@ const productSchema = new mongoose.Schema(
     },
     description : {
         type : String,
-        mandatory
+        required : true
     },
     price: {
         type : Number, 
@@ -36,11 +36,11 @@ const productSchema = new mongoose.Schema(
     style: String,
     availableSizes: {
         type : [String],//array of string, at least one size, 
-        enum : ["S", "XS","M","X", "L","XXL", "XL"]
+        enum : ["S","XS","M","X","L","XXL","XL"]
     },
     installments: Number,
     deletedAt: {
-        Date,
+        type : Date,
         default: null
     }, //when the document is deleted}, 
     isDeleted: {
