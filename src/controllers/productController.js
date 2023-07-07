@@ -1,5 +1,4 @@
 const productModel= require("../models/productModel")
-const validator = require("validator")
 const {isValid,isValidRequestBody} = require('../validation/validator');
 const {uploadFile} = require("../aws/awss3")
 const mongoose = require('mongoose')
@@ -305,7 +304,6 @@ const updateProduct= async (req, res) => {
         
         if(availableSizes){
             availableSizes = JSON.parse(availableSizes)
-            console.log(availableSizes)
             if(typeof availableSizes !== "object"){
                 return res.status(400).send({
                     status: false,
@@ -326,8 +324,8 @@ const updateProduct= async (req, res) => {
 
         // aws S3
 
-        let productImage = req.files
-        if(productImage){
+        if(req.files.length > 0){
+            let productImage = req.files
             if(productImage && productImage.length > 0){
                 let awss3link = await uploadFile(productImage[0])
                 product.productImage= awss3link
