@@ -1,7 +1,7 @@
 const cartModel = require('../models/cartModel')
 const userModel = require('../models/userModel')
 const productModel = require('../models/productModel')
-const {isValid,isValidRequestBody} = require('../validation/validator');
+const {isValid, isValidRequestBody} = require('../validation/validator');
 const mongoose = require('mongoose')
 const ObjectId = mongoose.Types.ObjectId
 
@@ -32,7 +32,7 @@ const addProduct = async (req,res) => {
         }
 
         let cartExist = await cartModel.findOne({userId:userId})
-        console.log(cartExist)
+        // console.log(cartExist)
 
         if(!isValidRequestBody(req.body)){
             return res.status(400).send({
@@ -41,8 +41,8 @@ const addProduct = async (req,res) => {
         }
         let {items} = req.body
         // console.log(req.body)
-        items = JSON.parse(items)
         // console.log(items)
+        items = JSON.parse(items)
 
         if(items.length == 0){
             return res.status(400).send({
@@ -86,19 +86,31 @@ const addProduct = async (req,res) => {
             totalPrice += productExist.price * items[key].quantity
         }
 
-        console.log(cartExist.items, items)
+        // console.log(cartExist.items, items)
         if(cartExist){
             // cartExist.items.concat(items)
             let len = cartExist.items.length
             let arr = []
+            // let map = new Map()
             for(let i=0;i<len;i++){
                 arr.push(cartExist.items[i])
             }
-            for(let i=len; i<items.length+len; i++){
-                arr.push(items[i-len])
+            let productFound =0 
+            for(let i=0; i<items.length; i++){
+                for(let j=0; j<arr.length; j++){
+                    if(arr[j].productId == items[i].productId){
+                        arr[j].quantity += items[i].quantity
+                        productFound=1
+                    }
+                }
+                if(productFound==0)
+                    arr.push(items[i])
+
+                productFound = 0
             }
+
             cartExist.items = arr
-            cartExist.totalItems += totalItems
+            cartExist.totalItems = arr.length
             cartExist.totalPrice += totalPrice
 
             let data = await cartExist.save()
@@ -288,7 +300,7 @@ const deleteCart = async (req,res) => {
         }
 
         let cartExist = await cartModel.findOne({userId:userId})
-        console.log(cartExist)
+        // console.log(cartExist)
 
         cartExist.items = []
         cartExist.totalItems = 0
