@@ -4,51 +4,52 @@ const ObjectId = mongoose.Schema.Types.ObjectId
 const orderSchema = new mongoose.Schema(
     {
         userId: {
-            ObjectId, 
+            type: ObjectId, 
             ref : 'user',
             required : true
         },
         items: [{
-          productId: {ObjectId,
+          productId: {
+            type: ObjectId,
             ref : 'product',
             required : true
           },
           quantity: {
-            Number,
+            type: Number,
             required: true,
             min : 1
           }
         }],
         totalPrice: {
-            Number,
+            type: Number,
             required : true,
             comment: "Holds total price of all the items in the cart"
         },
         totalItems: {
-            Number,
+            type: Number,
             required : true,
             comment: "Holds total number of items in the cart"
         },
         totalQuantity: {
-            Number,
+            type: Number,
             required : true,
             comment: "Holds total number of quantity in the cart"
         },
         cancellable: {
-            Boolean,
+            type: Boolean,
             default: true
         },
         status: {
-            String,
+            type: String,
             default: 'pending',
             enum : ['pending','completed', 'canceled']
         },
         deletedAt: {
-            Date,
+            type: Date,
             default : null
         }, 
         isDeleted: {
-            Boolean,
+            type: Boolean,
             default: false
         }
     },{ timestamps : true }

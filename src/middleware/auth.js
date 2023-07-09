@@ -19,9 +19,7 @@ const authorize = async function(req,res,next){
             else{
                 req.userId = decoded.userId
                 
-    
                 next()
-        
             }
         });
     } catch (error) {
