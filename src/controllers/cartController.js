@@ -121,7 +121,7 @@ const addProduct = async (req,res) => {
                 data: data
             })
         }else{
-            req.body.totalItems = totalItems
+            req.body.totalItems = items.lenght
             req.body.totalPrice = totalPrice
             req.body.userId = userId
             req.body.items = items
@@ -169,7 +169,6 @@ const updateCart = async (req,res) => {
             })
         }
 
-        let cartExist = await cartModel.findOne({userId:userId})
 
         if(!isValidRequestBody(req.body)){
             return res.status(400).send({
@@ -202,21 +201,47 @@ const updateCart = async (req,res) => {
         }
 
         let findInCart = await cartModel.findOne({userId: userId})
+        if(!findInCart){
+            return res.status(400).send({
+                status :false,
+                message: "Cart Not exist"
+            })
+        }
+        let productIncart = 0
+
         for(let i=0; i<findInCart.items.length; i++){
             let num = 0
             if(findInCart.items[i].productId == productId){
                 if(removeProduct == 0){
                     num = findInCart.items[i].quantity
                     findInCart.items[i].quantity = 0
-                    findInCart.totalItems -= num
+                    // findInCart.totalItems -= 1
                     findInCart.totalPrice -= num * findProduct.price
                 }else if(removeProduct == 1){
                     findInCart.items[i].quantity -= 1
-                    findInCart.totalItems -= 1
+                    // findInCart.totalItems -= 1
                     findInCart.totalPrice -= findProduct.price
                 }
+                productIncart = 1
             }
         }
+        if(productIncart==0){
+            return res.status(404).send({
+                status :false,
+                message: "Product is Not in cart!"
+            })
+        }
+        
+        let arr = []
+        for(let i=0; i<findInCart.items.length; i++){
+            if(findInCart.items[i].quantity > 0){
+                arr.push(findInCart.items[i])
+            }
+        }
+
+        findInCart.items = arr
+        findInCart.totalItems = arr.length
+        
         let data = await findInCart.save()
         res.status(200).send({
             status: true,
@@ -259,6 +284,12 @@ const getCart = async (req,res) => {
         }
 
         let cartExist = await cartModel.findOne({userId:userId})
+        if(!cartExist){
+            return res.status(400).send({
+                status :false,
+                message: "Cart Not exist"
+            })
+        }
         // console.log(cartExist)
 
         res.status(200).send({
