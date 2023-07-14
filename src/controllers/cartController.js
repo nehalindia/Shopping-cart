@@ -51,7 +51,7 @@ const addProduct = async (req,res) => {
             })
         }
 
-        let totalItems = 0, totalPrice = 0
+        let totalPrice = 0
         for(let key in items){
             if(!isValid(items[key].productId)){
                 return res.status(400).send({
@@ -68,7 +68,7 @@ const addProduct = async (req,res) => {
             }
 
             let productExist = await productModel.findById(items[key].productId)
-            if(!productExist){
+            if(!productExist || productExist.isDeleted == true){
                 return res.status(404).send({
                     status: false,
                     message: "product not Found"
@@ -82,16 +82,12 @@ const addProduct = async (req,res) => {
                 })
             }
 
-            totalItems += items[key].quantity
             totalPrice += productExist.price * items[key].quantity
         }
 
-        // console.log(cartExist.items, items)
         if(cartExist){
-            // cartExist.items.concat(items)
             let len = cartExist.items.length
             let arr = []
-            // let map = new Map()
             for(let i=0;i<len;i++){
                 arr.push(cartExist.items[i])
             }
@@ -186,7 +182,7 @@ const updateCart = async (req,res) => {
         
         
         let findProduct = await productModel.findById(productId)
-        if(!findProduct){
+        if(!findProduct || findProduct.isDeleted == true){
             return res.status(404).send({
                 status: false,
                 message: "Product is not available"
@@ -215,11 +211,9 @@ const updateCart = async (req,res) => {
                 if(removeProduct == 0){
                     num = findInCart.items[i].quantity
                     findInCart.items[i].quantity = 0
-                    // findInCart.totalItems -= 1
                     findInCart.totalPrice -= num * findProduct.price
                 }else if(removeProduct == 1){
                     findInCart.items[i].quantity -= 1
-                    // findInCart.totalItems -= 1
                     findInCart.totalPrice -= findProduct.price
                 }
                 productIncart = 1
@@ -290,7 +284,6 @@ const getCart = async (req,res) => {
                 message: "Cart Not exist"
             })
         }
-        // console.log(cartExist)
 
         res.status(200).send({
             status: true,
@@ -331,7 +324,6 @@ const deleteCart = async (req,res) => {
         }
 
         let cartExist = await cartModel.findOne({userId:userId})
-        // console.log(cartExist)
 
         cartExist.items = []
         cartExist.totalItems = 0
